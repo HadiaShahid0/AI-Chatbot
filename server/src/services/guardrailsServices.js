@@ -17,8 +17,8 @@ export const validateAIInputService = (response) => {
     return "Sorry, I could not generate a response.";
   }
 
-  if (response.length > 50) {
-    return response.slice(0, 50);
+  if (response.length > 4000) {
+    return response.slice(0, 4000);
   }
 
   return response;

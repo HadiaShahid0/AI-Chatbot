@@ -1,67 +1,56 @@
-export const createMessageService = async (
-  conversationId,
-  userId,
-  content
-) => {
-  // 1. Validate user input
-  validateUserInput(content);
+import {
+  FiMenu,
+  FiMoreVertical,
+  FiStar,
+} from "react-icons/fi";
 
-  // 2. Check conversation ownership
-  const conversation = await Conversation.findOne({
-    where: {
-      id: conversationId,
-      userId,
-    },
-  });
+const ChatHeader = ({ onMenuClick }) => {
+  return (
+    <header className="border-bottom bg-white px-3 py-2">
+      <div className="d-flex align-items-center justify-content-between">
+        <div className="d-flex align-items-center gap-3">
+          <button
+            type="button"
+            className="btn btn-light d-lg-none p-2"
+            onClick={onMenuClick}
+          >
+            <FiMenu size={22} />
+          </button>
 
-  if (!conversation) {
-    throw new Error("Conversation not found");
-  }
+          <div
+            className="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary"
+            style={{ width: "42px", height: "42px" }}
+          >
+            <FiStar size={20} />
+          </div>
 
-  // 3. Save user's message
-  const userMessage = await Message.create({
-    conversationId,
-    role: "user",
-    content,
-  });
+          <div>
+            <h6 className="mb-0 fw-semibold">AI Assistant</h6>
 
-  // 4. Get latest 20 messages
-  const previousMessages = await Message.findAll({
-    where: {
-      conversationId,
-    },
-    order: [["createdAt", "DESC"]],
-    limit: 20,
-  });
+            <div className="d-flex align-items-center gap-1 text-muted small">
+              <span
+                className="bg-success rounded-circle"
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  display: "inline-block",
+                }}
+              />
 
-  // 5. Reverse messages to oldest → newest
-  previousMessages.reverse();
+              <span>Online</span>
+            </div>
+          </div>
+        </div>
 
-  // 6. Convert messages to Gemini format
-  const conversationContext = previousMessages.map((message) => ({
-    role: message.role === "user" ? "user" : "model",
-    parts: [
-      {
-        text: message.content,
-      },
-    ],
-  }));
-
-  // 7. Send context to Gemini
-  const aiResponse = await generateGeminiResponse(
-    conversationContext
+        <button
+          type="button"
+          className="btn btn-light p-2"
+        >
+          <FiMoreVertical size={21} />
+        </button>
+      </div>
+    </header>
   );
-
-  // 8. Save AI response
-  const assistantMessage = await Message.create({
-    conversationId,
-    role: "assistant",
-    content: aiResponse,
-  });
-
-  // 9. Return both messages
-  return {
-    userMessage,
-    assistantMessage,
-  };
 };
+
+export default ChatHeader;
