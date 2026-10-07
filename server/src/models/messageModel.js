@@ -9,7 +9,7 @@ const Message = db.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    converstationId: {
+    conversationId: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -20,10 +20,6 @@ const Message = db.define(
     content: {
       type: DataTypes.TEXT,
       allowNull: false,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
     },
   },
   {

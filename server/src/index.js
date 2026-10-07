@@ -1,5 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
 
 import express from "express";
 import http from "http";
@@ -10,6 +8,8 @@ import routes from "./routes/index.js";
 import "./models/index.js";
 import sequelize from "./config/db.js";
 
+import dotenv from "dotenv";
+dotenv.config();
 const app = express();
 
 try {
@@ -36,7 +36,7 @@ app.use(
     credentials: true,
   }),
 );
-routes(app);
+app.use("/api", routes);
 
 const PORT = process.env.PORT || 5000;
 
