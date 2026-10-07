@@ -9,18 +9,32 @@ const Conversation = db.define(
       primaryKey: true,
       autoIncrement: true,
     },
+
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+
     title: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+
+    summary: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    lastSummarizedMessageId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+
     createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
+
     updatedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
@@ -29,7 +43,7 @@ const Conversation = db.define(
   {
     tableName: "conversations",
     timestamps: true,
-  },
+  }
 );
 
 export default Conversation;
