@@ -1,56 +1,104 @@
+import { Conversation, Message } from "../models/index.js";
+
+import { generateGeminiResponse } from "./geminiService.js";
+
+import { validateUserInputService } from "./guardrailService.js";
+
 import {
-  FiMenu,
-  FiMoreVertical,
-  FiStar,
-} from "react-icons/fi";
+  getConversationContextService,
+} from "./contextService.js";
 
-const ChatHeader = ({ onMenuClick }) => {
-  return (
-    <header className="border-bottom bg-white px-3 py-2">
-      <div className="d-flex align-items-center justify-content-between">
-        <div className="d-flex align-items-center gap-3">
-          <button
-            type="button"
-            className="btn btn-light d-lg-none p-2"
-            onClick={onMenuClick}
-          >
-            <FiMenu size={22} />
-          </button>
+import {
+  updateConversationSummaryService,
+} from "./conversationSummaryService.js";
 
-          <div
-            className="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary"
-            style={{ width: "42px", height: "42px" }}
-          >
-            <FiStar size={20} />
-          </div>
+export const createMessageService = async (
+  conversationId,
+  userId,
+  content
+) => {
+  validateUserInputService(content);
 
-          <div>
-            <h6 className="mb-0 fw-semibold">AI Assistant</h6>
+  // 1. Check conversation belongs to user
+  const conversation = await Conversation.findOne({
+    where: {
+      id: conversationId,
+      userId,
+    },
+  });
 
-            <div className="d-flex align-items-center gap-1 text-muted small">
-              <span
-                className="bg-success rounded-circle"
-                style={{
-                  width: "7px",
-                  height: "7px",
-                  display: "inline-block",
-                }}
-              />
+  if (!conversation) {
+    throw new Error("Conversation not found");
+  }
 
-              <span>Online</span>
-            </div>
-          </div>
-        </div>
+  // 2. Save user message
+  const userMessage = await Message.create({
+    conversationId,
+    role: "user",
+    content,
+  });
 
-        <button
-          type="button"
-          className="btn btn-light p-2"
-        >
-          <FiMoreVertical size={21} />
-        </button>
-      </div>
-    </header>
+  // 3. Get conversation context
+  const {
+    summary,
+    recentContext,
+  } = await getConversationContextService(
+    conversationId
   );
-};
 
-export default ChatHeader;
+  // 4. Add summary before recent messages
+  const conversationContext = [];
+
+  if (summary) {
+    conversationContext.push({
+      role: "user",
+      parts: [
+        {
+          text: `
+Here is a summary of the earlier conversation.
+Use it as background context.
+
+${summary}
+`,
+        },
+      ],
+    });
+  }
+
+  // 5. Add recent messages
+  conversationContext.push(...recentContext);
+
+  // 6. Generate AI response
+  const aiResponse = await generateGeminiResponse(
+    conversationContext
+  );
+
+  // 7. Validate AI response
+  const guardrailValidatedResponse =
+    validateUserInputService(aiResponse);
+
+  // 8. Save AI response
+  const assistantMessage = await Message.create({
+    conversationId,
+    role: "assistant",
+    content: guardrailValidatedResponse,
+  });
+
+  // 9. Update summary when conversation becomes large
+  const messageCount = await Message.count({
+    where: {
+      conversationId,
+    },
+  });
+
+  if (messageCount % 20 === 0) {
+    await updateConversationSummaryService(
+      conversationId
+    );
+  }
+
+  return {
+    userMessage,
+    assistantMessage,
+  };
+};
