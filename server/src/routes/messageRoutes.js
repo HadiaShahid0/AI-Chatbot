@@ -6,9 +6,13 @@ import {
 } from "../controller/messageController.js";
 
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { createMulter } from "../middlewares/multer.js";
+const upload=createMulter("chat")
 
 const router = express.Router();
-router.post("/", authMiddleware, createMessage);
+
+router.post("/", authMiddleware, upload.single("file"), createMessage);
+
 router.get(
   "/conversations/:conversationId",
   authMiddleware,

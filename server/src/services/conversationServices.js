@@ -1,5 +1,6 @@
 import { Message, Conversation } from "../models/index.js";
 import { generateGeminiResponse } from "./geminiServices.js";
+import { Op } from "sequelize";
 
 export const createConversationService = async (userId, title) => {
   const conversation = await Conversation.create({
@@ -36,34 +37,12 @@ export const getConversationService = async (conversationId, userId) => {
   return conversation;
 };
 
-export const updateConversationSummaryService = async (
-  conversationId
-) => {
-  console.log(
-    "SUMMARY SERVICE STARTED:",
-    conversationId
-  );
-
-  const conversation = await Conversation.findByPk(
-    conversationId
-  );
+export const updateConversationSummaryService = async (conversationId) => {
+  const conversation = await Conversation.findByPk(conversationId);
 
   if (!conversation) {
-    console.log("Conversation not found");
-
     throw new Error("Conversation not found");
   }
-
-  console.log(
-    "OLD SUMMARY:",
-    conversation.summary
-  );
-
-  console.log(
-    "OLD LAST ID:",
-    conversation.lastSummarizedMessageId
-  );
-
   const whereCondition = {
     conversationId,
   };
@@ -79,23 +58,13 @@ export const updateConversationSummaryService = async (
     order: [["createdAt", "ASC"]],
   });
 
-  console.log(
-    "MESSAGES TO SUMMARIZE:",
-    messages.length
-  );
-
   if (!messages.length) {
-    console.log("No messages to summarize");
-
     return conversation.summary || "";
   }
 
   const conversationText = messages
     .map((message) => {
-      const role =
-        message.role === "user"
-          ? "User"
-          : "Assistant";
+      const role = message.role === "user" ? "User" : "Assistant";
 
       return `${role}: ${message.content}`;
     })
@@ -125,47 +94,28 @@ Do not invent information.
 
 Return only the updated summary.
 `;
+  const summaryResponse = await generateGeminiResponse([
+    {
+      role: "user",
+      parts: [
+        {
+          text: prompt,
+        },
+      ],
+    },
+  ]);
 
-  console.log("CALLING GEMINI FOR SUMMARY...");
-
-  const summaryResponse =
-    await generateGeminiResponse([
-      {
-        role: "user",
-        parts: [
-          {
-            text: prompt,
-          },
-        ],
-      },
-    ]);
-
-  console.log(
-    "GEMINI SUMMARY:",
-    summaryResponse
-  );
-
-  const lastMessage =
-    messages[messages.length - 1];
-
-  console.log(
-    "LAST MESSAGE ID:",
-    lastMessage.id
-  );
+  const lastMessage = messages[messages.length - 1];
 
   await conversation.update({
     summary: summaryResponse,
     lastSummarizedMessageId: lastMessage.id,
   });
 
-  console.log("SUMMARY SAVED");
-
   return summaryResponse;
 };
 
-export const getConversationContextService = async (
-  conversationId
-) => {
+export const getConversationContextService = async (conversationId) => {
   const conversation = await Conversation.findByPk(conversationId);
 
   if (!conversation) {
@@ -177,23 +127,47 @@ export const getConversationContextService = async (
       conversationId,
     },
     order: [["createdAt", "DESC"]],
-    limit: 20,
+    limit: 5,
   });
 
   previousMessages.reverse();
+  const recentContext = previousMessages.map((message) => {
+    const parts = [];
 
-  const recentContext = previousMessages.map((message) => ({
-    role: message.role === "user" ? "user" : "model",
-    parts: [
-      {
+    if (message.content) {
+      parts.push({
         text: message.content,
-      },
-    ],
-  }));
+      });
+    }
+
+    if (message.geminiFileUri && message.fileType) {
+      parts.push({
+        fileData: {
+          fileUri: message.geminiFileUri,
+
+          mimeType: message.fileType,
+        },
+      });
+    }
+
+    return {
+      role: message.role === "user" ? "user" : "model",
+
+      parts,
+    };
+  });
+
+  // const recentContext = previousMessages.map((message) => ({
+  //   role: message.role === "user" ? "user" : "model",
+  //   parts: [
+  //     {
+  //       text: message.content,
+  //     },
+  //   ],
+  // }));
 
   return {
     summary: conversation.summary || "",
     recentContext,
   };
 };
-

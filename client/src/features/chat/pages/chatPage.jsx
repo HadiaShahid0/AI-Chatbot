@@ -26,26 +26,27 @@ const ChatPage = () => {
   useEffect(() => {
     loadConversations();
   }, []);
+
   const handleLogout = async () => {
     try {
       await logoutServices();
 
-      // Redirect to login
       window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
+
   const loadConversations = async () => {
     try {
-      const data = await getConversationsServices();
+      const conversations = await getConversationsServices();
 
-      setConversations(data);
+      setConversations(conversations);
 
-      if (data.length > 0) {
-        setActiveConversationId(data[0].id);
+      if (conversations.length > 0) {
+        setActiveConversationId(conversations[0].id);
 
-        await loadMessages(data[0].id);
+        await loadMessages(conversations[0].id);
       }
     } catch (error) {
       console.error(error);
@@ -56,9 +57,9 @@ const ChatPage = () => {
 
   const loadMessages = async (conversationId) => {
     try {
-      const data = await getMessagesServices(conversationId);
+      const messages = await getMessagesServices(conversationId);
 
-      setMessages(data);
+      setMessages(messages);
     } catch (error) {
       console.error(error);
       setMessages([]);
@@ -82,11 +83,10 @@ const ChatPage = () => {
     setActiveConversationId(conversationId);
 
     await loadMessages(conversationId);
-
   };
 
-  const handleSendMessage = async (content) => {
-    if (!content.trim() || !activeConversationId || loading) {
+  const handleSendMessage = async (content, file) => {
+    if ((!content.trim() && !file) || !activeConversationId || loading) {
       return;
     }
 
@@ -96,6 +96,10 @@ const ChatPage = () => {
       id: `temp-${Date.now()}`,
       role: "user",
       content: userContent,
+      file: file || null,
+      fileName: file?.name || null,
+      fileType: file?.type || null,
+      fileSize: file?.size || null,
     };
 
     setMessages((previous) => [...previous, temporaryUserMessage]);
@@ -103,17 +107,36 @@ const ChatPage = () => {
     setLoading(true);
 
     try {
-      const data = await sendMessageServices(activeConversationId, userContent);
+      const data = await sendMessageServices(
+        activeConversationId,
+        userContent,
+        file,
+      );
+
+      console.log("API response:", data);
+      console.log("User message:", data.userMessage);
+
+      const returnedUserMessage = {
+        ...data.userMessage,
+        file: file || null,
+        fileName: data.userMessage?.fileName || file?.name || null,
+        fileType: data.userMessage?.fileType || file?.type || null,
+        fileSize: data.userMessage?.fileSize || file?.size || null,
+      };
 
       setMessages((previous) => {
         const withoutTemporary = previous.filter(
           (message) => message.id !== temporaryUserMessage.id,
         );
 
-        return [...withoutTemporary, data.userMessage, data.assistantMessage];
+        return [
+          ...withoutTemporary,
+          returnedUserMessage,
+          data.assistantMessage,
+        ];
       });
     } catch (error) {
-      console.error(error);
+      console.error("Send message error:", error);
 
       setMessages((previous) =>
         previous.filter((message) => message.id !== temporaryUserMessage.id),

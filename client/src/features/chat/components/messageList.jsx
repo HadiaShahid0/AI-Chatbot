@@ -5,6 +5,8 @@ import {
   FiCode,
   FiBookOpen,
   FiHelpCircle,
+  FiFile,
+  FiImage,
 } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 
@@ -48,7 +50,6 @@ const MessageList = ({ messages, loading }) => {
 
               <div>
                 <strong>Explain a concept</strong>
-
                 <span>Explain JWT in simple English</span>
               </div>
             </button>
@@ -60,7 +61,6 @@ const MessageList = ({ messages, loading }) => {
 
               <div>
                 <strong>Help with code</strong>
-
                 <span>How do React protected routes work?</span>
               </div>
             </button>
@@ -72,7 +72,6 @@ const MessageList = ({ messages, loading }) => {
 
               <div>
                 <strong>Debug an issue</strong>
-
                 <span>Why is my API returning 401?</span>
               </div>
             </button>
@@ -115,8 +114,36 @@ const MessageList = ({ messages, loading }) => {
                     isUser ? "user-bubble" : "assistant-bubble"
                   }`}
                 >
+                  {/* User message */}
                   {isUser ? (
-                    message.content
+                    <>
+                      {message.file && (
+                        <div className="chat-attachment">
+                          {message.fileType?.startsWith("image/") ? (
+                            <img
+                              src={URL.createObjectURL(message.file)}
+                              alt={message.fileName}
+                              className="chat-image-preview"
+                            />
+                          ) : (
+                            <div className="chat-file-preview">
+                              <FiFile size={22} />
+
+                              <div>
+                                <strong>{message.fileName}</strong>
+                                <small>PDF Document</small>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {message.content && (
+                        <div className={message.file ? "mt-2" : ""}>
+                          {message.content}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   )}

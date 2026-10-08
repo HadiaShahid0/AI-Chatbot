@@ -1,4 +1,3 @@
-
 import express from "express";
 import http from "http";
 import cors from "cors";
@@ -17,7 +16,7 @@ try {
 
   console.log("MySQL connected successfully.");
 
-  await sequelize.sync({ alter: true })
+  await sequelize.sync({ alter: true });
 
   console.log("Database synchronized.");
 } catch (error) {
@@ -36,6 +35,7 @@ app.use(
     credentials: true,
   }),
 );
+
 app.use("/api", routes);
 
 const PORT = process.env.PORT || 5000;

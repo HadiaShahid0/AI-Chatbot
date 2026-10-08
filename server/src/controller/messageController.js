@@ -5,19 +5,28 @@ import {
 } from "../services/messageServices.js";
 
 export const createMessage = async (req, res) => {
-  const { conversationId, content } = req.body;
-  const userId = req.user.id;
   try {
-    const message = await createMessageService(conversationId, userId, content);
-    res.status(201).json({
-      message: "Message created successfully",
-      userMessage: message.userMessage,
-      assistantMessage: message.assistantMessage,
+    const { conversationId, content } = req.body;
+
+    console.log("conversationId:", conversationId);
+    console.log("content:", content);
+    console.log("file:", req.file);
+
+    const result = await createMessageService(
+      conversationId,
+      req.user.id,
+      content,
+      req.file,
+    );
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Error creating message:", error);
+
+    res.status(500).json({
+      message: "Error creating message",
+      error: error.message,
     });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error creating message", error: err.message });
   }
 };
 
@@ -38,6 +47,7 @@ export const getMessagesByConversationId = async (req, res) => {
       .json({ message: "Error fetching messages", error: err.message });
   }
 };
+
 export const getMessageById = async (req, res) => {
   const messageId = req.params.messageId;
   const userId = req.user.id;
