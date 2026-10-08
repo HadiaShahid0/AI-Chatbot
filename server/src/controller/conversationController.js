@@ -19,6 +19,7 @@ export const createConversation = async (req, res) => {
   }
 };
 
+
 export const getUserConversation = async (req, res) => {
   const userId = req.user.id;
   try {
@@ -32,6 +33,7 @@ export const getUserConversation = async (req, res) => {
       .json({ message: "Error fetching user conversations", error: err.message });
   }
 };
+
 
 export const getConversation = async (req, res) => {
   const conversationId = req.params.conversationId;

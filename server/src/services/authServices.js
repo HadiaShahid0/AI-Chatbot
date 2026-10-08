@@ -1,6 +1,8 @@
 import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/jwt.js";
+
+
 export const registerUserService = async (username, email, password) => {
   const existingUser = await User.findOne({ where: { email } });
   if (existingUser) {
@@ -14,6 +16,7 @@ export const registerUserService = async (username, email, password) => {
   });
   return newUser;
 };
+
 
 export const loginUserService = async (email, password) => {
   const user = await User.findOne({ where: { email } });
@@ -29,6 +32,7 @@ export const loginUserService = async (email, password) => {
   return { user, token };
 };
 
+
 export const logoutUserService = async (token) => {
   try {
     return { message: "User logged out successfully" };
@@ -36,6 +40,7 @@ export const logoutUserService = async (token) => {
     throw new Error(err.message);
   }
 };
+
 
 export const getUserProfileService = async (userId) => {
   const user = await User.findByPk(userId, {
@@ -46,6 +51,7 @@ export const getUserProfileService = async (userId) => {
   }
   return user;
 };
+
 
 export const verifyUserService = async (userId) => {
   const user = await User.findByPk(userId, {

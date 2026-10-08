@@ -9,8 +9,18 @@ import {
   getConversationContextService,
   updateConversationSummaryService,
 } from "./conversationServices.js";
-export const createMessageService = async (conversationId, userId, content) => {
-  validateUserInputService(content);
+import { Op } from "sequelize";
+import { uploadFileToGemini } from "./geminiServices.js";
+
+export const createMessageService = async (
+  conversationId,
+  userId,
+  content,
+  file,
+) => {
+  if (!content?.trim() && !file) {
+    validateUserInputService(content);
+  }
   const conversation = await Conversation.findOne({
     where: {
       id: conversationId,
@@ -22,15 +32,27 @@ export const createMessageService = async (conversationId, userId, content) => {
     throw new Error("Conversation not found");
   }
 
+  let uploadedFile = null;
+  if (file) {
+    uploadedFile = await uploadFileToGemini(file);
+  }
+
   const message = await Message.create({
     conversationId,
     role: "user",
-    content,
+    content: content,
+    fileName: file?.originalname || null,
+    fileType: file?.mimetype || null,
+    fileSize: file?.size || null,
+    filePath: file?.path || null,
+    geminiFileUri: uploadedFile?.uri || null,
   });
 
   const { summary, recentContext } =
     await getConversationContextService(conversationId);
+
   const conversationContext = [];
+
   if (summary) {
     conversationContext.push({
       role: "user",
@@ -45,9 +67,24 @@ ${summary}
       ],
     });
   }
+
   conversationContext.push(...recentContext);
 
+  if (file && uploadedFile) {
+    const currentMessage = conversationContext[conversationContext.length - 1];
+
+    if (currentMessage) {
+      currentMessage.parts.push({
+        fileData: {
+          fileUri: uploadedFile.uri,
+
+          mimeType: uploadedFile.mimeType,
+        },
+      });
+    }
+  }
   const aiResponse = await generateGeminiResponse(conversationContext);
+
   const guardrailValidatedResponse = validateAIInputService(aiResponse);
 
   const assistantMessage = await Message.create({
@@ -56,30 +93,34 @@ ${summary}
     content: guardrailValidatedResponse,
   });
 
-const messageCount = await Message.count({
-  where: {
-    conversationId,
-  },
-});
+  const lastSummarizedMessageId = conversation.lastSummarizedMessageId || 0;
 
-const lastSummarizedMessageId =
-  conversation.lastSummarizedMessageId || 0;
+  const unsummarizedCount = await Message.count({
+    where: {
+      conversationId,
+      id: {
+        [Op.gt]: lastSummarizedMessageId,
+      },
+    },
+  });
 
-const unsummarizedCount =
-  messageCount - lastSummarizedMessageId;
-
-if (unsummarizedCount >= 20) {
-  updateConversationSummaryService(conversationId)
-    .catch((error) => {
-      console.error(
-        "Summary update failed:",
-        error
-      );
+  if (unsummarizedCount >= 5) {
+    updateConversationSummaryService(conversationId).catch((error) => {
+      console.error("Summary update failed:", error);
     });
-}
+  }
   return {
     userMessage: message,
     assistantMessage,
+    attachment: uploadedFile
+      ? {
+          fileName: file.originalname,
+          fileType: file.mimetype,
+          fileSize: file.size,
+          filePath: file.path,
+          geminiFileUri: uploadedFile.uri,
+        }
+      : null,
   };
 };
 
@@ -102,6 +143,7 @@ export const getMessagesByConversationIdService = async (
   });
   return messages;
 };
+
 export const getMessageByIdService = async (messageId, userId) => {
   const message = await Message.findOne({
     where: { id: messageId },

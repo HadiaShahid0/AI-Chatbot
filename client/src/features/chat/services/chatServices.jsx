@@ -51,33 +51,30 @@ export const getMessagesServices = async (conversationId) => {
 
   return data.messages;
 };
-export const sendMessageServices = async (
-  conversationId,
-  content
-) => {
-  const response = await fetch(`${API_URL}/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({
-      conversationId,
-      content,
-    }),
-  });
+export const sendMessageServices = async (conversationId, content, file) => {
+  const formData = new FormData();
 
-  const data = await response.json();
+  formData.append("conversationId", conversationId);
+  formData.append("content", content);
 
-  if (!response.ok) {
-    throw new Error(
-      data.error || "Failed to send message"
-    );
+  if (file) {
+    formData.append("file", file);
   }
 
-  return data;
-};
+  const response = await fetch("http://localhost:5000/api/messages", {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
 
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(errorText);
+  }
+
+  return response.json();
+};
 export const logoutServices = async () => {
   const response = await fetch(`${API_URL}/auth/logout`, {
     method: "POST",
