@@ -144,7 +144,6 @@ export const getConversationContextService = async (conversationId) => {
       parts.push({
         fileData: {
           fileUri: message.geminiFileUri,
-
           mimeType: message.fileType,
         },
       });
@@ -152,7 +151,6 @@ export const getConversationContextService = async (conversationId) => {
 
     return {
       role: message.role === "user" ? "user" : "model",
-
       parts,
     };
   });

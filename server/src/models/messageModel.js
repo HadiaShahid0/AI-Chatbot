@@ -21,6 +21,30 @@ const Message = db.define(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    fileName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    fileType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    fileSize: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+
+    filePath: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    geminiFileUri: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     tableName: "messages",
