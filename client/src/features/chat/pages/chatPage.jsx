@@ -59,6 +59,8 @@ const ChatPage = () => {
     try {
       const messages = await getMessagesServices(conversationId);
 
+      console.log("Loaded messages:", messages);
+
       setMessages(messages);
     } catch (error) {
       console.error(error);
@@ -99,7 +101,6 @@ const ChatPage = () => {
       file: file || null,
       fileName: file?.name || null,
       fileType: file?.type || null,
-      fileSize: file?.size || null,
     };
 
     setMessages((previous) => [...previous, temporaryUserMessage]);
@@ -121,7 +122,6 @@ const ChatPage = () => {
         file: file || null,
         fileName: data.userMessage?.fileName || file?.name || null,
         fileType: data.userMessage?.fileType || file?.type || null,
-        fileSize: data.userMessage?.fileSize || file?.size || null,
       };
 
       setMessages((previous) => {

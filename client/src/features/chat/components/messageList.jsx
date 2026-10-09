@@ -114,15 +114,18 @@ const MessageList = ({ messages, loading }) => {
                     isUser ? "user-bubble" : "assistant-bubble"
                   }`}
                 >
-                  {/* User message */}
                   {isUser ? (
                     <>
-                      {message.file && (
+                      {(message.file || message.filePath) && (
                         <div className="chat-attachment">
-                          {message.fileType?.startsWith("image/") ? (
+                          {message.fileType?.startsWith("image/jpeg") ? (
                             <img
-                              src={URL.createObjectURL(message.file)}
-                              alt={message.fileName}
+                              src={
+                                message.file
+                                  ? URL.createObjectURL(message.file)
+                                  : message.filePath
+                              }
+                              alt={message.fileName || "Uploaded image"}
                               className="chat-image-preview"
                             />
                           ) : (
@@ -130,8 +133,15 @@ const MessageList = ({ messages, loading }) => {
                               <FiFile size={22} />
 
                               <div>
-                                <strong>{message.fileName}</strong>
-                                <small>PDF Document</small>
+                                <strong>
+                                  {message.fileName || "Uploaded file"}
+                                </strong>
+
+                                <small>
+                                  {message.fileType === "application/pdf"
+                                    ? "PDF Document"
+                                    : message.fileType || "File"}
+                                </small>
                               </div>
                             </div>
                           )}
@@ -139,7 +149,11 @@ const MessageList = ({ messages, loading }) => {
                       )}
 
                       {message.content && (
-                        <div className={message.file ? "mt-2" : ""}>
+                        <div
+                          className={
+                            message.file || message.fileUrl ? "mt-2" : ""
+                          }
+                        >
                           {message.content}
                         </div>
                       )}

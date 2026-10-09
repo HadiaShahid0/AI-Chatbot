@@ -10,16 +10,13 @@ const MessageInput = ({ onSend, disabled }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     if (!content.trim() && !selectedFile) {
       return;
     }
-
+    setContent("");
+    setSelectedFile(null);
     try {
-      setLoading(true);
       await onSend(content, selectedFile);
-      setContent("");
-      setSelectedFile(null);
     } catch (error) {
       console.error("Send message error:", error);
     } finally {
@@ -91,8 +88,6 @@ const MessageInput = ({ onSend, disabled }) => {
         <span>
           Press <strong>Enter</strong> to send
         </span>
-
-        <span>AI can make mistakes. Check important information.</span>
       </div>
     </div>
   );

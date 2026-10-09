@@ -44,25 +44,15 @@ export const generateGeminiResponse = async (contents) => {
 
 export const uploadFileToGemini = async (file) => {
   try {
-    console.log("Uploading file to Gemini...");
-    console.log("File:", file.originalname);
-    console.log("MIME type:", file.mimetype);
-
     const uploadedFile = await ai.files.upload({
       file: file.path,
-
       config: {
         mimeType: file.mimetype,
       },
     });
 
-    console.log("File uploaded to Gemini.");
-    console.log("Gemini file URI:", uploadedFile.uri);
-
     return uploadedFile;
   } catch (error) {
-    console.error("Gemini file upload error:", error);
-
     throw new Error("Unable to upload the file to Gemini.");
   }
 };
