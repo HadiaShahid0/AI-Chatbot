@@ -317,10 +317,10 @@ Example:
 ```env
 PORT=5000
 
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=ai_chatbot
-DB_USER=root
+DB_HOST=db_host
+DB_PORT=db_port
+DB_NAME=your_db_name
+DB_USER=your_db_username
 DB_PASSWORD=your_password
 
 JWT_SECRET=your_jwt_secret
@@ -361,7 +361,7 @@ and add your database, JWT, and Gemini API configuration.
 Create a database in MySQL:
 
 ```sql
-CREATE DATABASE ai_chatbot;
+CREATE DATABASE db_name;
 ```
 
 Configure the database credentials in your `.env` file.
@@ -449,25 +449,6 @@ Testing can be added for:
 * File uploads
 * Document processing
 * Image processing
-
-## 📌 Future Improvements
-
-Possible future improvements include:
-
-* [ ] Streaming Gemini responses
-* [ ] Better token counting
-* [ ] Advanced document parsing
-* [ ] PDF-specific processing
-* [ ] More file formats
-* [ ] Conversation search
-* [ ] Message editing
-* [ ] Message regeneration
-* [ ] Voice input
-* [ ] Voice output
-* [ ] Improved long-term memory
-* [ ] Rate limiting
-* [ ] Automated testing
-* [ ] Production deployment
 
 ## 🎯 Learning Goals
 

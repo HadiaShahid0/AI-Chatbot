@@ -1,5 +1,5 @@
 import { Message, Conversation } from "../models/index.js";
-import { generateGeminiResponse } from "./geminiServices.js";
+import { generateGeminiResponse} from "./geminiServices.js";
 import { Op } from "sequelize";
 
 export const createConversationService = async (userId, title) => {
@@ -131,6 +131,7 @@ export const getConversationContextService = async (conversationId) => {
   });
 
   previousMessages.reverse();
+
   const recentContext = previousMessages.map((message) => {
     const parts = [];
 
@@ -154,16 +155,6 @@ export const getConversationContextService = async (conversationId) => {
       parts,
     };
   });
-
-  // const recentContext = previousMessages.map((message) => ({
-  //   role: message.role === "user" ? "user" : "model",
-  //   parts: [
-  //     {
-  //       text: message.content,
-  //     },
-  //   ],
-  // }));
-
   return {
     summary: conversation.summary || "",
     recentContext,

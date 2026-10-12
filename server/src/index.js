@@ -16,7 +16,7 @@ try {
 
   console.log("MySQL connected successfully.");
 
-  await sequelize.sync({ alter: true });
+  await sequelize.sync();
 
   console.log("Database synchronized.");
 } catch (error) {

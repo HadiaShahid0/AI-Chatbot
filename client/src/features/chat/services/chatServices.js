@@ -51,7 +51,13 @@ export const getMessagesServices = async (conversationId) => {
 
   return data.messages;
 };
-export const sendMessageServices = async (conversationId, content, file) => {
+
+export const sendMessageServices = async (
+  conversationId,
+  content,
+  file,
+  onChunk,
+) => {
   const formData = new FormData();
 
   formData.append("conversationId", conversationId);
@@ -69,12 +75,37 @@ export const sendMessageServices = async (conversationId, content, file) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-
     throw new Error(errorText);
   }
 
-  return response.json();
+  const reader = response.body.getReader();
+
+  const decoder = new TextDecoder();
+
+  let completeResponse = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+      const text = decoder.decode(value, { stream: true });
+
+      completeResponse += text;
+
+      if (onChunk) {
+        onChunk(text);
+      }
+    }
+
+    return completeResponse;
+  } finally {
+    reader.releaseLock();
+  }
 };
+
 export const logoutServices = async () => {
   const response = await fetch(`${API_URL}/auth/logout`, {
     method: "POST",

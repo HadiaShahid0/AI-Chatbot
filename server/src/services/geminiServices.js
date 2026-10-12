@@ -25,7 +25,6 @@ When the user uploads a document or image:
 - Do not invent information that is not present in the file.
 - If the requested information is not available in the file, clearly say that it is not available.
 `;
-
 export const generateGeminiResponse = async (contents) => {
   console.log("Sending request to Gemini...");
 
@@ -40,6 +39,22 @@ export const generateGeminiResponse = async (contents) => {
   console.log("Gemini response received.");
 
   return response.text;
+};
+
+export const generateGeminiResponseStream = async (contents) => {
+  console.log("Sending request to Gemini...");
+
+  const response = await ai.models.generateContentStream({
+    model: "gemini-3.5-flash-lite",
+    contents,
+    config: {
+      systemInstruction: systemInstruction,
+    },
+  });
+
+  console.log("Gemini response received.");
+
+  return response;
 };
 
 export const uploadFileToGemini = async (file) => {

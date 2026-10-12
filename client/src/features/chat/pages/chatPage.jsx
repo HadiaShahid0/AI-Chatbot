@@ -91,10 +91,10 @@ const ChatPage = () => {
     if ((!content.trim() && !file) || !activeConversationId || loading) {
       return;
     }
-
     const userContent = content.trim();
+    const conversationId = activeConversationId;
 
-    const temporaryUserMessage = {
+    const userMessage = {
       id: `temp-${Date.now()}`,
       role: "user",
       content: userContent,
@@ -103,43 +103,46 @@ const ChatPage = () => {
       fileType: file?.type || null,
     };
 
-    setMessages((previous) => [...previous, temporaryUserMessage]);
+    const assistantMessage = {
+      id: Date.now() + 1,
+      role: "assistant",
+      content: "",
+    };
+    setMessages((previous) => [...previous, userMessage, assistantMessage]);
 
     setLoading(true);
 
     try {
-      const data = await sendMessageServices(
+      await sendMessageServices(
         activeConversationId,
         userContent,
         file,
+        (chunk) => {
+          setMessages((prev) =>
+            prev.map((message) =>
+              message.id === assistantMessage.id
+                ? {
+                    ...message,
+                    content: message.content + chunk,
+                  }
+                : message,
+            ),
+          );
+        },
       );
-
-      console.log("API response:", data);
-      console.log("User message:", data.userMessage);
-
-      const returnedUserMessage = {
-        ...data.userMessage,
-        file: file || null,
-        fileName: data.userMessage?.fileName || file?.name || null,
-        fileType: data.userMessage?.fileType || file?.type || null,
-      };
-
-      setMessages((previous) => {
-        const withoutTemporary = previous.filter(
-          (message) => message.id !== temporaryUserMessage.id,
-        );
-
-        return [
-          ...withoutTemporary,
-          returnedUserMessage,
-          data.assistantMessage,
-        ];
-      });
+      const savedMessages = await getMessagesServices(activeConversationId);
+      
+      if (conversationId === activeConversationId) {
+        setMessages(savedMessages);
+      }
     } catch (error) {
       console.error("Send message error:", error);
 
-      setMessages((previous) =>
-        previous.filter((message) => message.id !== temporaryUserMessage.id),
+      setMessages((prev) =>
+        prev.filter(
+          (message) =>
+            message.id !== userMessage.id && message.id !== assistantMessage.id,
+        ),
       );
     } finally {
       setLoading(false);

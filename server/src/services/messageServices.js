@@ -1,6 +1,6 @@
 import Message from "../models/messageModel.js";
 import Conversation from "../models/conversationModel.js";
-import { generateGeminiResponse } from "../services/geminiServices.js";
+import { generateGeminiResponseStream } from "../services/geminiServices.js";
 import {
   validateUserInputService,
   validateAIInputService,
@@ -17,6 +17,7 @@ export const createMessageService = async (
   userId,
   content,
   file,
+  res,
 ) => {
   if (!content?.trim() && !file) {
     validateUserInputService(content);
@@ -33,6 +34,7 @@ export const createMessageService = async (
   }
 
   let uploadedFile = null;
+
   if (file) {
     uploadedFile = await uploadFileToGemini(file);
   }
@@ -40,7 +42,7 @@ export const createMessageService = async (
   const message = await Message.create({
     conversationId,
     role: "user",
-    content: content,
+    content,
     fileName: file?.originalname || null,
     fileType: file?.mimetype || null,
     fileSize: file?.size || null,
@@ -58,34 +60,23 @@ export const createMessageService = async (
       role: "user",
       parts: [
         {
-          text: `
-Here is a summary of the earlier conversation.
-Use it as background context.
-${summary}
-`,
+          text: ` Summary of earlier conversation: \n${summary}`,
         },
       ],
     });
   }
 
   conversationContext.push(...recentContext);
+  const aiResponse = await generateGeminiResponseStream(conversationContext);
 
-  if (file && uploadedFile) {
-    const currentMessage = conversationContext[conversationContext.length - 1];
-
-    if (currentMessage) {
-      currentMessage.parts.push({
-        fileData: {
-          fileUri: uploadedFile.uri,
-
-          mimeType: uploadedFile.mimeType,
-        },
-      });
-    }
+  let completeResponse = "";
+  for await (const chunk of aiResponse) {
+    const text = chunk.text || "";
+    completeResponse += text;
+    res.write(text);
   }
-  const aiResponse = await generateGeminiResponse(conversationContext);
 
-  const guardrailValidatedResponse = validateAIInputService(aiResponse);
+  const guardrailValidatedResponse = validateAIInputService(completeResponse);
 
   const assistantMessage = await Message.create({
     conversationId,
