@@ -12,12 +12,18 @@ import ReactMarkdown from "react-markdown";
 
 const MessageList = ({ messages, loading }) => {
   const bottomRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({
+    const container = messagesContainerRef.current;
+
+    if (!container) return;
+
+    container.scrollTo({
+      top: container.scrollHeight,
       behavior: "smooth",
     });
-  }, [messages, loading]);
+  }, [messages]);
 
   if (messages.length === 0) {
     return (
@@ -82,7 +88,7 @@ const MessageList = ({ messages, loading }) => {
   }
 
   return (
-    <div className="messages-scroll">
+    <div className="messages-scroll" ref={messagesContainerRef}>
       <div className="messages-content">
         {messages.map((message) => {
           const isUser = message.role === "user";
@@ -167,7 +173,7 @@ const MessageList = ({ messages, loading }) => {
           );
         })}
 
-        {loading && (
+        {loading && !messages[messages.length - 1]?.content && (
           <div className="message-row assistant-message-row">
             <div className="message-avatar assistant-avatar">
               <FiStar size={17} />

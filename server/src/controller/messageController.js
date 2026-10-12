@@ -4,29 +4,29 @@ import {
   getMessageByIdService,
 } from "../services/messageServices.js";
 
+
 export const createMessage = async (req, res) => {
   try {
     const { conversationId, content } = req.body;
 
-    console.log("conversationId:", conversationId);
-    console.log("content:", content);
-    console.log("file:", req.file);
-
-    const result = await createMessageService(
+    await createMessageService(
       conversationId,
       req.user.id,
       content,
       req.file,
+      res,
     );
-
-    res.status(201).json(result);
+    res.end();
   } catch (error) {
     console.error("Error creating message:", error);
 
-    res.status(500).json({
-      message: "Error creating message",
-      error: error.message,
-    });
+    if (!res.headersSent) {
+      return res.status(500).json({
+        message: "Error creating message",
+        error: error.message,
+      });
+    }
+    res.end();
   }
 };
 

@@ -20,5 +20,4 @@ router.get(
 );
 
 router.get("/:messageId", authMiddleware, getMessageById);
-
 export default router;
