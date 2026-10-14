@@ -92,7 +92,6 @@ const ChatPage = () => {
       return;
     }
     const userContent = content.trim();
-    const conversationId = activeConversationId;
 
     const userMessage = {
       id: `temp-${Date.now()}`,
@@ -108,6 +107,7 @@ const ChatPage = () => {
       role: "assistant",
       content: "",
     };
+   
     setMessages((previous) => [...previous, userMessage, assistantMessage]);
 
     setLoading(true);
@@ -130,11 +130,6 @@ const ChatPage = () => {
           );
         },
       );
-      const savedMessages = await getMessagesServices(activeConversationId);
-      
-      if (conversationId === activeConversationId) {
-        setMessages(savedMessages);
-      }
     } catch (error) {
       console.error("Send message error:", error);
 
