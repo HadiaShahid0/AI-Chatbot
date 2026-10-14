@@ -11,6 +11,7 @@ import {
 } from "./conversationServices.js";
 import { Op } from "sequelize";
 import { uploadFileToGemini } from "./geminiServices.js";
+import { retrieveRelevantChunksService } from "../rag/services/retrievalService.js";
 
 export const createMessageService = async (
   conversationId,
@@ -66,6 +67,51 @@ export const createMessageService = async (
     });
   }
 
+  let retrievedChunks = [];
+  if (content?.trim()) {
+    try {
+      retrievedChunks = await retrieveRelevantChunksService({
+        question: content,
+        topK: 5,
+      });
+      console.log(
+        `Retrieved ${retrievedChunks.length} relevant document chunks`,
+      );
+        console.log("Retrieved chunks:", retrievedChunks.length);
+    console.log("Retrieved document content:", retrievedChunks);
+    } catch (err) {
+      console.error("Document retrieval failed:", err);
+    }
+  }
+
+  if (retrievedChunks.length > 0) {
+    const documentContext = retrievedChunks
+      .map((chunk, index) => {
+        return `Document Chunk ${index + 1}:\n${chunk.text}`;
+      })
+      .join("\n\n");
+
+    conversationContext.push({
+      role: "user",
+      parts: [
+        {
+          text: `
+Relevant information retrieved from the provided document:
+
+${documentContext} 
+
+Instructions:
+- Use the provided document information to answer questions about the document.
+- Do not invent facts or claim the document contains information that is not provided.
+- If the available information is insufficient to answer the question, clearly say so.
+- Use the conversation history when relevant.
+- Do not mention chunks, embeddings, vector databases, or the retrieval process unless these topics are explicitly mentioned in the document and are relevant to the user's question.
+- Give only the information relevant to the user's question.
+        `,
+        },
+      ],
+    });
+  }
   conversationContext.push(...recentContext);
   const aiResponse = await generateGeminiResponseStream(conversationContext);
 

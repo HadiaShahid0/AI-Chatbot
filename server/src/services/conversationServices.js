@@ -1,5 +1,5 @@
 import { Message, Conversation } from "../models/index.js";
-import { generateGeminiResponse} from "./geminiServices.js";
+import { generateGeminiResponse } from "./geminiServices.js";
 import { Op } from "sequelize";
 
 export const createConversationService = async (userId, title) => {
@@ -90,9 +90,8 @@ Keep:
 - Important facts
 - Ongoing tasks
 
-Do not invent information.
-
-Return only the updated summary.
+Do not invent information. keep the wording simple and summary short.
+Return only the updated summary, without headings or additional explanations.
 `;
   const summaryResponse = await generateGeminiResponse([
     {

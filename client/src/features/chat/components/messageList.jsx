@@ -6,7 +6,6 @@ import {
   FiBookOpen,
   FiHelpCircle,
   FiFile,
-  FiImage,
 } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 
@@ -164,36 +163,21 @@ const MessageList = ({ messages, loading }) => {
                         </div>
                       )}
                     </>
-                  ) : (
+                  ) : message.content ? (
                     <ReactMarkdown>{message.content}</ReactMarkdown>
-                  )}
+                  ) : loading &&
+                    message.id === messages[messages.length - 1]?.id ? (
+                    <div className="typing-bubble">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
           );
         })}
-
-        {loading && !messages[messages.length - 1]?.content && (
-          <div className="message-row assistant-message-row">
-            <div className="message-avatar assistant-avatar">
-              <FiStar size={17} />
-            </div>
-
-            <div className="message-body">
-              <div className="message-meta">
-                <strong>AI Assistant</strong>
-                <span>AI</span>
-              </div>
-
-              <div className="typing-bubble">
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-          </div>
-        )}
-
         <div ref={bottomRef} />
       </div>
     </div>
