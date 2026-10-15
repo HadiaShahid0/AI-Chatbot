@@ -1,4 +1,4 @@
-export const splitTextIntoChunksService = (text, chunkSize = 500, overlap = 20) => {
+export const splitTextIntoChunksService = (text, chunkSize = 512, overlap = 50) => {
 
   if (!text?.trim()) throw new Error("Text cannot be empty");
 

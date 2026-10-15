@@ -15,17 +15,16 @@ export const getDocumentCollectionService = async () => {
 
   documentCollection = await chroma.getOrCreateCollection({
     name: "chat_documents",
-    embeddingFunction: null,                                    
+    embeddingFunction: null,
   });
 
   return documentCollection;
 };
 
 export const checkChromaConnection = async () => {
-    await chroma.heartbeat();
+  await chroma.heartbeat();
 
-    console.log("ChromaDB connected successfully.");
-
+  console.log("ChromaDB connected successfully.");
 };
 
 export default chroma;
