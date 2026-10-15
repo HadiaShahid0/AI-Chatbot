@@ -7,13 +7,10 @@ export const retrieveRelevantChunksService = async ({
 }) => {
   if (!question?.trim()) throw new Error("Question cannot be empty");
 
-  //STEP-1 Convert the user's question into an embedding
   const queryEmbedding = await generateQueryEmbeddingService(question);
 
-  //STEP-2 Get the Vector db collection
   const collection = await getDocumentCollectionService();
 
-  //STEP-3 Search for similar chunks
   const results = await collection.query({
     queryEmbeddings: [queryEmbedding],
     nResults: topK,

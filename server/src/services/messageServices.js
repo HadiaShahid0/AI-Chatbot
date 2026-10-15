@@ -77,8 +77,8 @@ export const createMessageService = async (
       console.log(
         `Retrieved ${retrievedChunks.length} relevant document chunks`,
       );
-        console.log("Retrieved chunks:", retrievedChunks.length);
-    console.log("Retrieved document content:", retrievedChunks);
+      console.log("Retrieved chunks:", retrievedChunks.length);
+      console.log("Retrieved document content:", retrievedChunks);
     } catch (err) {
       console.error("Document retrieval failed:", err);
     }
@@ -105,6 +105,8 @@ Instructions:
 - Do not invent facts or claim the document contains information that is not provided.
 - If the available information is insufficient to answer the question, clearly say so.
 - Use the conversation history when relevant.
+- For general questions unrelated to these documents, answer normally using your general knowledge.
+- Do not mention that you are using general knowledge.
 - Do not mention chunks, embeddings, vector databases, or the retrieval process unless these topics are explicitly mentioned in the document and are relevant to the user's question.
 - Give only the information relevant to the user's question.
         `,
@@ -113,6 +115,7 @@ Instructions:
     });
   }
   conversationContext.push(...recentContext);
+  
   const aiResponse = await generateGeminiResponseStream(conversationContext);
 
   let completeResponse = "";

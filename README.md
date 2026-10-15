@@ -1,97 +1,136 @@
 # 🤖 AI Chatbot
 
-A full-stack AI chatbot application built with **React, Node.js, Express, MySQL, Sequelize, and Google Gemini API**. The application provides conversational AI with persistent conversations, message history, chat summarization, context management, and support for uploading documents and images.
+A full-stack AI chatbot built with **React, Vite, Node.js, Express,
+MySQL, Sequelize, and Google Gemini**. It supports conversational AI,
+persistent chat history, conversation summaries, document and image
+uploads, streaming responses, and Retrieval-Augmented Generation (RAG)
+for retrieving information from uploaded PDF content.
 
 ## ✨ Features
 
-* 🔐 **User Authentication**
+### 🔐 Authentication
 
-  * User registration and login
-  * Secure authentication
-  * Protected chat routes
+-   User registration and login
+-   JWT-based authentication using HTTP-only cookies
+-   Protected chat routes
 
-* 💬 **AI Chat**
+### 💬 AI Chat and Conversation Management
 
-  * Conversational chat with Google Gemini
-  * Context-aware responses
-  * Persistent message history
-  * User and AI message management
+-   Chat with Google Gemini
+-   Create and view conversations
+-   Save user and assistant messages in MySQL
+-   Use recent messages to maintain conversation context
+-   Summarize longer conversations and save summaries in the database
+-   Stream AI responses to the frontend
 
-* 🗂️ **Conversation Management**
+### 📄 Document and Image Uploads
 
-  * Create new conversations
-  * View previous conversations
-  * Store conversations in the database
-  * Automatically manage conversation context
+-   Upload supported documents and images
+-   Ask questions about uploaded files
+-   Process supported files with Gemini
+-   Store file information with the associated chat message
 
-* 🧠 **Context & Memory**
+### 🧠 Retrieval-Augmented Generation (RAG)
 
-  * Maintains recent conversation context
-  * Chat summarization for longer conversations
-  * Stores generated summaries in the database
-  * Uses previous conversation information when generating responses
+-   Extract text from PDF documents
+-   Split extracted text into smaller chunks
+-   Generate document and query embeddings with Google's
+    `gemini-embedding-001`
+-   Store and search document chunks in ChromaDB
+-   Retrieve relevant chunks using vector similarity search
+-   Use **Top-K retrieval** (default `topK = 5`)
+-   Apply metadata filtering using `scope: "shared"`
+-   Add retrieved document content to the Gemini prompt to help answer
+    document-related questions
 
-* 📄 **Document Upload**
+#### Current chunking strategy
 
-  * Upload documents to the chatbot
-  * Send prompts related to uploaded documents
-  * Process document content with Gemini
+The current chunking function uses **fixed-size character chunking with
+overlap**: - Chunk size: `512` characters by default - Overlap: `50`
+characters by default - Each next chunk starts at the previous chunk's
+end position minus the overlap
 
-* 🖼️ **Image Upload**
 
-  * Upload images
-  * Send prompts about uploaded images
-  * Multimodal AI processing with Gemini
+#### RAG workflow
 
-* 📊 **Token & Context Management**
+``` text
+PDF document
+    |
+    v
+Extract PDF text
+    |
+    v
+Split text into chunks
+(512 characters, 50-character overlap)
+    |
+    v
+Generate document embeddings
+(gemini-embedding-001)
+    |
+    v
+Store chunks, embeddings, and metadata
+in ChromaDB
 
-  * Research and implementation of token-aware conversation handling
-  * Controls the amount of previous conversation sent to the AI
-  * Uses summarization to manage long conversations
 
-* 🎨 **Modern Chat Interface**
+User question
+    |
+    v
+Generate query embedding
+    |
+    v
+Search ChromaDB
+(vector similarity + scope metadata filter)
+    |
+    v
+Retrieve up to 5 matching chunks
+    |
+    v
+Add retrieved text to Gemini context
+    |
+    v
+Generate the answer
+```
 
-  * Chat sidebar
-  * Chat header
-  * Message list
-  * Message input
-  * Responsive interface
-  * Markdown-based AI responses
+**Retrieval method:** vector similarity search with Top-K retrieval and
+metadata filtering. The retrieval service returns each chunk's text,
+metadata, and distance. The distance is available for evaluation; this
+code does not apply a relevance-distance threshold.
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 
-* React
-* Vite
-* React Icons
-* React Markdown
-* Bootstrap 5
-* JavaScript
+-   React
+-   Vite
+-   JavaScript
+-   Bootstrap 5
+-   React Icons
+-   React Markdown
 
 ### Backend
 
-* Node.js
-* Express.js
-* Sequelize
-* MySQL
-* JWT Authentication
-* Cookie-based authentication
-* Multer for file uploads
+-   Node.js
+-   Express.js
+-   Sequelize ORM
+-   MySQL
+-   JWT authentication and HTTP-only cookies
+-   Multer for file uploads
 
-### AI
+### AI and RAG
 
-* Google Gemini API
-* Gemini multimodal processing
-* Conversation context management
-* Chat summarization
-* Token/context management
+-   Google Gemini API
+-   `gemini-3.5-flash-lite` for chat responses (as configured in the
+    project)
+-   `gemini-embedding-001` for embeddings
+-   ChromaDB for vector storage and similarity search
+-   PDF-Parse for PDF text extraction
+-   Conversation context management and summarization
+-   Streaming responses
 
 ## 📁 Project Structure
 
-```text
+``` text
 AI-Chatbot/
-│
 ├── client/
 │   ├── src/
 │   │   ├── components/
@@ -99,167 +138,74 @@ AI-Chatbot/
 │   │   │   ├── ChatSidebar/
 │   │   │   ├── MessageInput/
 │   │   │   └── MessageList/
-│   │   │
 │   │   ├── features/
 │   │   │   └── auth/
-│   │   │
 │   │   ├── services/
 │   │   │   └── chatServices.js
-│   │   │
 │   │   └── ...
-│   │
 │   └── package.json
-│
 ├── server/
 │   ├── controllers/
 │   ├── services/
-│   │   ├── geminiServices.js
-│   │   └── ...
-│   │
 │   ├── models/
 │   ├── routes/
 │   ├── middleware/
 │   ├── uploads/
 │   ├── config/
 │   └── ...
-│
 ├── .gitignore
 └── README.md
 ```
 
+The tree above is a simplified overview; exact files may differ as the
+project evolves.
+
 ## 🔄 Application Workflow
 
-```text
-                    ┌─────────────────┐
-                    │      User       │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ React Frontend  │
-                    └────────┬────────┘
-                             │
-                    HTTP Requests
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ Express Server  │
-                    └────────┬────────┘
-                             │
-                    ┌────────┴─────────┐
-                    │                  │
-                    ▼                  ▼
-             ┌──────────────┐   ┌──────────────┐
-             │    MySQL     │   │ Gemini API   │
-             │  + Sequelize │   │              │
-             └──────────────┘   └──────┬───────┘
-                                        │
-                                        ▼
-                                ┌──────────────┐
-                                │ AI Response  │
-                                └──────┬───────┘
-                                       │
-                                       ▼
-                                ┌──────────────┐
-                                │ Save Message │
-                                └──────┬───────┘
-                                       │
-                                       ▼
-                                ┌──────────────┐
-                                │ React Chat   │
-                                └──────────────┘
-```
-
-## 🧠 Conversation Context Flow
-
-The chatbot manages conversation context instead of sending an unlimited number of previous messages to Gemini.
-
-```text
-User Message
-     │
-     ▼
-Load Conversation
-     │
-     ▼
-Get Previous Messages
-     │
-     ▼
-Check Context / Summary
-     │
-     ├───────────────┐
-     │               │
-     ▼               ▼
-Recent Messages   Summary
-     │               │
-     └───────┬───────┘
-             ▼
-       Build AI Context
-             │
-             ▼
-        Gemini API
-             │
-             ▼
-        AI Response
-             │
-             ▼
-       Save Message
-             │
-             ▼
-     Update Summary
-       when needed
-```
-
-This approach helps the application handle longer conversations while keeping the AI context manageable.
-
-## 📄 Document & Image Workflow
-
-The chatbot supports multimodal input.
-
-```text
+``` text
 User
- │
- ├── Text Prompt
- │
- ├── Document
- │
- └── Image
-       │
-       ▼
-  React Frontend
-       │
-       ▼
-  Express Backend
-       │
-       ▼
- File Processing
-       │
-       ▼
- Gemini API
-       │
-       ▼
- AI analyzes
- text/document/image
-       │
-       ▼
- AI Response
-       │
-       ▼
- Database
+ |
+ v
+React frontend
+ |
+ | HTTP requests / streamed response
+ v
+Express backend
+ |                  |
+ v                  v
+MySQL            Gemini API
+(users,          (chat response,
+ conversations,   file processing)
+ messages)
+ |
+ v
+Saved conversation history
 ```
 
-Users can upload a document or image and provide a prompt such as:
+For RAG-enabled questions, the backend also retrieves relevant document
+chunks from ChromaDB and includes them in the context sent to Gemini.
 
-```text
-"Summarize this document."
+## 🧠 Conversation Context and Memory
 
-"Explain this image."
+The chatbot keeps the prompt manageable by combining: - A saved summary
+of earlier conversation content - A limited number of recent messages -
+Relevant retrieved document chunks when RAG retrieval is used
 
-"What are the important points in this file?"
-```
+The summary and recent messages help the chatbot maintain conversation
+continuity. Retrieved RAG content provides additional information from
+indexed documents.
 
 ## 🗄️ Database
 
-The application uses **MySQL** with **Sequelize ORM**.
+The application uses **MySQL with Sequelize ORM**.
+
+### Main entities
+
+-   **User:** account and authentication information.
+-   **Conversation:** chat ownership, title, summary, and
+    summary-tracking information.
+-   **Message:** user/assistant content and associated file details when
+    applicable.
 
 Main entities include:
 
@@ -310,104 +256,100 @@ User
 
 ## 🔑 Environment Variables
 
-Create a `.env` file inside the `server` directory.
+Create a `.env` file inside the `server` directory. Example:
 
-Example:
-
-```env
+``` env
 PORT=5000
 
-DB_HOST=db_host
-DB_PORT=db_port
+DB_HOST=localhost
+DB_PORT=3306
 DB_NAME=your_db_name
 DB_USER=your_db_username
 DB_PASSWORD=your_password
 
 JWT_SECRET=your_jwt_secret
-
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-> Never commit your `.env` file or expose your Gemini API key publicly.
+> Never commit your `.env` file or expose API keys and database
+> credentials publicly.
 
 ## 🚀 Installation
 
 ### 1. Clone the repository
 
-```bash
+``` bash
 git clone https://github.com/HadiaShahid0/AI-Chatbot.git
 cd AI-Chatbot
 ```
 
 ### 2. Install backend dependencies
 
-```bash
+``` bash
 cd server
 npm install
 ```
 
 ### 3. Configure environment variables
 
-Create:
-
-```text
-server/.env
-```
-
-and add your database, JWT, and Gemini API configuration.
+Create `server/.env` and add your MySQL, JWT, and Gemini configuration.
 
 ### 4. Create the MySQL database
 
-Create a database in MySQL:
+Create a database in MySQL, using your chosen database name:
 
-```sql
-CREATE DATABASE db_name;
+``` sql
+CREATE DATABASE your_db_name;
 ```
 
-Configure the database credentials in your `.env` file.
+Make sure the database credentials in `server/.env` match your MySQL
+setup.
 
 ### 5. Start the backend
 
-```bash
-cd server
+From the `server` directory, run:
+
+``` bash
 npm run dev
 ```
 
-The backend will run on your configured port.
+Use the script defined in `server/package.json` if your development
+command differs.
 
 ### 6. Install frontend dependencies
 
-Open another terminal:
+Open another terminal at the project root:
 
-```bash
+``` bash
 cd client
 npm install
 ```
 
 ### 7. Start the frontend
 
-```bash
+``` bash
 npm run dev
 ```
 
-The React application will then be available at the Vite development URL.
+Open the local URL printed by Vite in your terminal.
 
 ## 🔌 API Overview
 
-The backend provides APIs for:
+The backend includes endpoints for authentication, conversations, and
+messages. The exact paths depend on the current route configuration.
 
 ### Authentication
 
-```text
-POST   /api/auth/register
-POST   /api/auth/login
-POST   /api/auth/logout
-GET    /api/auth/me
+``` text
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/logout
+GET  /api/auth/me
 ```
 
 ### Conversations
 
-```text
+``` text
 POST   /api/conversations
 GET    /api/conversations
 GET    /api/conversations/:id
@@ -416,65 +358,46 @@ DELETE /api/conversations/:id
 
 ### Messages
 
-```text
-GET    /api/messages/:conversationId
-POST   /api/messages
+``` text
+GET  /api/messages/:conversationId
+POST /api/messages
 ```
 
-> Exact API paths may vary depending on the current route configuration.
+## 🔐 Security Notes
 
-## 🔐 Security
+-   Hash passwords before storing them.
+-   Use HTTP-only cookies for authentication tokens.
+-   Protect private routes and verify conversation ownership on the
+    backend.
+-   Keep API keys and database credentials in environment variables.
+-   Validate uploaded files and their supported types.
+-   Do not expose sensitive server configuration to the frontend.
 
-The application follows several security practices:
+## 🧪 Suggested Testing Areas
 
-* Password hashing
-* JWT authentication
-* HTTP-only cookies
-* Protected routes
-* User-specific conversation access
-* Environment variables for sensitive credentials
-* Backend-side Gemini API communication
-* File upload validation
-
-## 🧪 Testing
-
-Testing can be added for:
-
-* Authentication
-* Conversation creation
-* Message creation
-* Gemini service
-* Context management
-* Summarization
-* File uploads
-* Document processing
-* Image processing
+-   Registration, login, logout, and protected routes
+-   Conversation creation and message persistence
+-   Conversation context and summary updates
+-   Streaming response behavior
+-   File uploads and Gemini file processing
+-   PDF text extraction and chunk creation
+-   Embedding generation and ChromaDB storage
+-   Retrieval relevance, metadata filtering, and Top-K results
+-   RAG answers for document-related and general questions
 
 ## 🎯 Learning Goals
 
-This project was developed to understand practical implementation of:
-
-* Large Language Models (LLMs)
-* Gemini API integration
-* Prompt processing
-* Tokenization
-* Context windows
-* Conversation memory
-* Chat summarization
-* Multimodal AI
-* Document processing
-* Image processing
-* REST APIs
-* React frontend architecture
-* Node.js and Express
-* MySQL and Sequelize
-* Authentication and authorization
-* File uploads
+This project provides practical experience with: - Large Language Models
+and Gemini API integration - Prompt construction and conversation
+context - Token and context-window management - Conversation memory and
+summarization - Multimodal file processing - Retrieval-Augmented
+Generation (RAG) - Text chunking and overlap - Document and query
+embeddings - Vector databases and similarity search - Top-K retrieval
+and metadata filtering - REST APIs, React, Node.js, and Express - MySQL,
+Sequelize, and authentication
 
 ## 👩‍💻 Author
 
 **Hadia Shahid**
 
-GitHub:
-https://github.com/HadiaShahid0
-
+GitHub: [HadiaShahid0](https://github.com/HadiaShahid0)

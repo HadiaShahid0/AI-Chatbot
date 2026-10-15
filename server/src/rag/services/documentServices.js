@@ -13,15 +13,12 @@ export const storePDFInChromaService = async ({
 
   console.log("Extracting PDF text...");
 
-  //STEP-1 Extract text from PDF
   const extractedText = await extractTextFromPDFService(filePath);
   console.log("PDF text extracted successfully");
 
-  //STEP-2 Split text into chunks
   const chunks = splitTextIntoChunksService(extractedText);
   console.log("Total Chunks: ", chunks.length);
 
-  //STEP-3 Generate and embedding for each chunk
   const embeddings = [];
 
   for (let i = 0; i < chunks.length; i++) {
@@ -31,10 +28,8 @@ export const storePDFInChromaService = async ({
     embeddings.push(embedding);
   }
 
-  //STEP 4 Get the vectordb collection
   const collection = await getDocumentCollectionService();
 
-  //STEP 5 Prepare unique IDs for each chunk
   const ids = [];
   for (let i = 0; i < chunks.length; i++) {
     ids.push(`document=${documentId}-chunk-${i}`);
