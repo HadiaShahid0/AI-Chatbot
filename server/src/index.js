@@ -6,7 +6,7 @@ import routes from "./routes/index.js";
 
 import "./models/index.js";
 import sequelize from "./config/db.js";
-
+import { initializeHybridSearchService } from "./rag/services/initializeService.js";
 import dotenv from "dotenv";
 dotenv.config();
 const app = express();
@@ -22,8 +22,8 @@ try {
 } catch (error) {
   console.error("Database connection failed:", error);
 }
-
 const server = http.createServer(app);
+await initializeHybridSearchService();
 
 app.use(express.json());
 

@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold  } from "@google/genai";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -32,31 +32,52 @@ File Handling Rules:
 - If the user asks a question unrelated to the uploaded file, answer normally without unnecessarily referring to the file.
 `;
 
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+];
+const GEMINI_CONFIG = {
+  systemInstruction,
+  safetySettings,
+};
 export const generateGeminiResponse = async (contents) => {
   console.log("Sending request to Gemini...");
 
   const response = await ai.models.generateContent({
     model: "gemini-3.5-flash-lite",
     contents,
-    config: {
-      systemInstruction: systemInstruction,
-    },
+    config:GEMINI_CONFIG
   });
 
+  if (response.candidates?.[0]?.finishReason === "SAFETY") {
+    return "Response blocked: The content violated safety policies.";
+  }
   console.log("Gemini response received.");
 
   return response.text;
 };
- 
+
 export const generateGeminiResponseStream = async (contents) => {
   console.log("Sending request to Gemini...");
 
   const response = await ai.models.generateContentStream({
     model: "gemini-3.5-flash-lite",
     contents,
-    config: {
-      systemInstruction: systemInstruction,
-    },
+    config: GEMINI_CONFIG
   });
 
   console.log("Gemini response received.");

@@ -14,8 +14,9 @@ export const getDocumentCollectionService = async () => {
   }
 
   documentCollection = await chroma.getOrCreateCollection({
-    name: "chat_documents",
+    name: "chatDocuments",
     embeddingFunction: null,
+    metadata: { "hnsw:space": "cosine" }
   });
 
   return documentCollection;
