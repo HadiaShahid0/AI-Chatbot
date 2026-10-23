@@ -1,50 +1,77 @@
 import { ChromaClient } from "chromadb";
 
 const client = new ChromaClient({
-  host: "localhost",
-  port: 8000,
-  ssl: false,
+    host: "localhost",
+    port: 8000,
+    ssl: false
 });
 
-async function viewAllCollections() {
+async function inspectCollection() {
     try {
+        // Step 1: Display available collections
         const collections = await client.listCollections();
-        const cleanNames = collections.map(col => col.name);
-        console.log("Your ChromaDB Collections:", cleanNames);
-    } catch (error) {
-        console.error("Error fetching collections:", error);
-    }
-}
 
-async function checkCollectionSize() {
-    try {
-        const collection = await client.getCollection({ name: "chat_documents" });
-        const totalDocs = await collection.count();
-        console.log(`Total documents inside 'chat_documents': ${totalDocs}`);
-    } catch (error) {
-        console.error("Error:", error);
-    }
-}
+        console.log("\nAvailable collections:");
+        console.log(collections);
 
-async function viewCollectionData() {
-    try {
-        const collection = await client.getCollection({ name: "chat_documents" });
-
-        const data = await collection.get({
-            limit: 11, 
-            include: ["documents", "metadatas"] 
+        // Step 2: Access the expected collection
+        const collection = await client.getCollection({
+            name: "chatDocuments"
         });
 
+        // Step 3: Get total number of records
+        const totalDocs = await collection.count();
+
+        console.log("\nTotal records:", totalDocs);
+
+        // Step 4: Retrieve all records
+        const data = await collection.get({
+            include: ["documents", "metadatas"]
+        });
+
+        // Step 5: Display each record
         for (let i = 0; i < data.ids.length; i++) {
-            console.log(`--- [ID: ${data.ids[i]}] ---`);
-            console.log(`Metadata:`, data.metadatas[i]);
-            console.log(`Content:\n${data.documents[i]}\n`);
+            console.log(`\n--- Record ${i + 1} ---`);
+
+            console.log("ID:", data.ids[i]);
+            console.log("File name:", data.metadatas[i]?.fileName);
+            console.log("Document ID:", data.metadatas[i]?.documentId);
+            console.log("Chunk index:", data.metadatas[i]?.chunkIndex);
+            console.log("Scope:", data.metadatas[i]?.scope);
+            console.log("Content:", data.documents[i]);
         }
+
     } catch (error) {
-        console.error("Error viewing data:", error);
+        console.error("Error inspecting collection:", error);
     }
 }
-checkCollectionSize()
-viewAllCollections()
-viewCollectionData();
 
+inspectCollection();
+import chroma from "./services/vectorStoreServices.js";
+
+async function checkSimilarityStrategy() {
+  try {
+    const collection = await chroma.getCollection({
+      name: "chatDocuments",
+    });
+
+    console.log("Collection name:", collection.name);
+    console.log("Collection metadata:", collection.metadata);
+
+    const configuration = await collection.configuration;
+
+    console.log(
+      "Collection configuration:",
+      JSON.stringify(configuration, null, 2)
+    );
+
+    console.log(
+      "HNSW space:",
+      configuration?.hnsw?.space
+    );
+  } catch (error) {
+    console.error("Error checking collection:", error);
+  }
+}
+
+checkSimilarityStrategy();
