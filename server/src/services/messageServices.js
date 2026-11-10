@@ -12,7 +12,10 @@ import {
 } from "./conversationServices.js";
 import { Op } from "sequelize";
 import { uploadFileToGemini } from "./geminiServices.js";
-
+import {
+  getCitationsService,
+  formatCitationsService,
+} from "./citationsService.js";
 import { generateGeminiResponseWithTools } from "./geminiServices.js";
 // import { selectChunksWithMMR } from "../rag/services/mmrService.js";
 

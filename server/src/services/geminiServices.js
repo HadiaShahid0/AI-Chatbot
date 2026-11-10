@@ -1,6 +1,10 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { executeToolService } from "../tools/toolExecution.js";
 import { tools } from "../tools/toolDefinations.js";
+import {
+  getCitationsService,
+  formatCitationsService,
+} from "../services/citationsService.js";
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
@@ -155,6 +159,7 @@ export const generateGeminiResponseWithTools = async (contents) => {
   console.log("Sending request to Gemini with tools...");
 
   const MAX_TOOL_ROUNDS = 5;
+  const citations = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     console.log(`Gemini API request: Round ${round + 1}`);
@@ -171,26 +176,29 @@ export const generateGeminiResponseWithTools = async (contents) => {
       },
     });
     console.log(`Gemini response received: Round ${round + 1}`);
-
+    citations.push(...getCitationsService(response));
     const functionCalls = response.functionCalls || [];
 
     if (functionCalls.length === 0) {
       if (response.candidates?.[0]?.finishReason === "SAFETY")
         return "Response blocked: The content violated safety policies";
       console.log("Gemini response received");
+      const answer = response.text || "";
+      const citationText = formatCitationsService(citations);
 
-      return response.text || "";
+      return answer + citationText;
     }
 
     console.log("Gemini requested Function Calls: ", functionCalls);
     contents.push(response.candidates[0].content);
 
-
     const functionCallResults = await Promise.all(
       functionCalls.map(async (functionCall) => {
         try {
           const result = await executeToolService(functionCall);
-          
+          if (result?.sources) {
+            citations.push(...result.sources);
+          }
           return {
             functionResponse: {
               name: functionCall.name,
