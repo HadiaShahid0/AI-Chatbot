@@ -17,7 +17,7 @@ export const extractTextFromPDFService = async (filePath) => {
         "No text found in the PDF. It may be scanned or image-based",
       );
 
-    return extractedText;
+    return extractedText;                                          
   } catch (err) {
     console.error("PDF extraction failed: ", err.message);
     throw err;

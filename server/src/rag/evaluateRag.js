@@ -1,36 +1,25 @@
 import "dotenv/config";
-
-import {
-  getRelevantDocumentChunksService,
-} from "../services/messageServices.js";
-
-import {
-  evaluateRetrievalService,
-} from "./services/ragEvaluationService.js";
-
-import {
-  initializeHybridSearchService,
-} from "./services/initializeService.js";
-
+import { getRelevantDocumentChunksService } from "../services/messageServices.js";
+import { evaluateRetrievalService } from "./services/ragEvaluationService.js";
+import { initializeHybridSearchService } from "./services/initializeService.js";
 import {
   generateAnswerForEvaluationService,
   evaluateGenerationService,
 } from "../services/generationEvaluationService.js";
-
 import { evaluationDataset } from "./evaluationDataset.js";
-
 const TOP_K = 3;
 
-// Calculate the average of a list of numbers.
-const calculateAverage = (values) => {
-  if (values.length === 0) {
-    return null;
-  }
+const calculateAverage = (scores) => {
+  if (scores.length === 0) return null;
 
-  return values.reduce((total, value) => total + value, 0) / values.length;
+  let total = 0;
+
+  for (const score of scores) {
+    total += score;
+  }
+  return total / scores.length;
 };
 
-// Format metric values for readable console output.
 const formatMetric = (value) => {
   return typeof value !== "number" || !Number.isFinite(value)
     ? "N/A"
@@ -47,24 +36,19 @@ const evaluateRag = async () => {
     return;
   }
 
-  // Initialize the search pipeline.
   await initializeHybridSearchService();
-
   const results = [];
-
   for (const testCase of evaluationDataset) {
     console.log("\n==============================================");
     console.log(`Question ${testCase.id}: ${testCase.question}`);
     console.log("==============================================");
 
     try {
-      // Step 1: Retrieve chunks using the production pipeline.
       const retrievedChunks = await getRelevantDocumentChunksService(
         testCase.question,
         TOP_K,
       );
 
-      // Step 2: Evaluate retrieval performance.
       const retrievalMetrics = evaluateRetrievalService(
         retrievedChunks,
         testCase.relevantChunkIds,
@@ -72,9 +56,7 @@ const evaluateRag = async () => {
 
       console.log("\n========== RETRIEVED CHUNKS ==========");
 
-      console.log(
-        retrievedChunks.map((chunk) => chunk.id),
-      );
+      console.log(retrievedChunks.map((chunk) => chunk.id));
 
       console.log("\n========== RETRIEVAL METRICS ==========");
 
@@ -83,17 +65,13 @@ const evaluateRag = async () => {
         formatMetric(retrievalMetrics.precision),
       );
 
-      console.log(
-        `Recall@${TOP_K}:`,
-        formatMetric(retrievalMetrics.recall),
-      );
+      console.log(`Recall@${TOP_K}:`, formatMetric(retrievalMetrics.recall));
 
       console.log(
         "Reciprocal Rank:",
         formatMetric(retrievalMetrics.reciprocalRank),
       );
 
-      // Step 3: Generate an answer using the existing Gemini service.
       const actualAnswer = await generateAnswerForEvaluationService({
         question: testCase.question,
         retrievedChunks,
@@ -107,7 +85,6 @@ const evaluateRag = async () => {
       console.log("\nActual answer:");
       console.log(actualAnswer || "[Empty answer]");
 
-      // Step 4: Evaluate the generated answer.
       const generationMetrics = await evaluateGenerationService({
         question: testCase.question,
         expectedAnswer: testCase.expectedAnswer,
@@ -142,14 +119,12 @@ const evaluateRag = async () => {
 
       console.log("Evaluation reason:", generationMetrics.reason);
 
-      // Step 5: Save the complete result.
       results.push({
         questionId: testCase.id,
         question: testCase.question,
 
         answerable: !testCase.shouldAbstain,
 
-        // Retrieval metrics
         retrievedCount: retrievalMetrics.retrievedCount,
         relevantCount: retrievalMetrics.relevantCount,
         relevantRetrievedCount: retrievalMetrics.relevantRetrievedCount,
@@ -157,7 +132,6 @@ const evaluateRag = async () => {
         recall: retrievalMetrics.recall,
         reciprocalRank: retrievalMetrics.reciprocalRank,
 
-        // Generation metrics
         faithfulness: generationMetrics.faithfulness,
         answerRelevancy: generationMetrics.answerRelevancy,
         answerCorrectness: generationMetrics.answerCorrectness,
@@ -172,7 +146,6 @@ const evaluateRag = async () => {
         error.message,
       );
 
-      // Keep failed test cases visible in the results.
       results.push({
         questionId: testCase.id,
         question: testCase.question,
@@ -193,10 +166,7 @@ const evaluateRag = async () => {
     }
   }
 
-  // Include only test cases that completed both evaluations.
-  const successfulResults = results.filter(
-    (result) => result.error === null,
-  );
+  const successfulResults = results.filter((result) => result.error === null);
 
   console.log("\n========== INDIVIDUAL RESULTS ==========");
   console.table(results);
@@ -206,7 +176,6 @@ const evaluateRag = async () => {
     return;
   }
 
-  // Calculate average retrieval metrics.
   const averagePrecision = calculateAverage(
     successfulResults.map((result) => result.precision),
   );
@@ -221,7 +190,6 @@ const evaluateRag = async () => {
     successfulResults.map((result) => result.reciprocalRank),
   );
 
-  // Calculate average generation metrics.
   const averageFaithfulness = calculateAverage(
     successfulResults.map((result) => result.faithfulness),
   );
@@ -234,16 +202,12 @@ const evaluateRag = async () => {
     successfulResults.map((result) => result.answerCorrectness),
   );
 
-  // Abstention correctness applies only to questions marked for abstention.
   const abstentionResults = successfulResults
     .filter((result) => result.abstentionCorrectness !== null)
     .map((result) => result.abstentionCorrectness);
 
-  const averageAbstentionCorrectness = calculateAverage(
-    abstentionResults,
-  );
+  const averageAbstentionCorrectness = calculateAverage(abstentionResults);
 
-  // Separate answerable and unanswerable questions.
   const answerableResults = successfulResults.filter(
     (result) => result.answerable,
   );
@@ -257,27 +221,15 @@ const evaluateRag = async () => {
   console.log("Successful evaluations:", successfulResults.length);
   console.log("Failed evaluations:", results.length - successfulResults.length);
 
-  console.log(
-    `Average Precision@${TOP_K}:`,
-    formatMetric(averagePrecision),
-  );
+  console.log(`Average Precision@${TOP_K}:`, formatMetric(averagePrecision));
 
-  console.log(
-    `Average Recall@${TOP_K}:`,
-    formatMetric(averageRecall),
-  );
+  console.log(`Average Recall@${TOP_K}:`, formatMetric(averageRecall));
 
-  console.log(
-    "Mean Reciprocal Rank (MRR):",
-    formatMetric(averageMRR),
-  );
+  console.log("Mean Reciprocal Rank (MRR):", formatMetric(averageMRR));
 
   console.log("\n========== AVERAGE GENERATION METRICS ==========");
 
-  console.log(
-    "Average Faithfulness:",
-    formatMetric(averageFaithfulness),
-  );
+  console.log("Average Faithfulness:", formatMetric(averageFaithfulness));
 
   console.log(
     "Average Answer Relevancy:",
@@ -304,9 +256,7 @@ const evaluateRag = async () => {
   console.log(
     "Faithfulness:",
     formatMetric(
-      calculateAverage(
-        answerableResults.map((result) => result.faithfulness),
-      ),
+      calculateAverage(answerableResults.map((result) => result.faithfulness)),
     ),
   );
 

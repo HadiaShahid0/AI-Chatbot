@@ -12,9 +12,12 @@ import {
 } from "./conversationServices.js";
 import { Op } from "sequelize";
 import { uploadFileToGemini } from "./geminiServices.js";
+
+import { generateGeminiResponseWithTools } from "./geminiServices.js";
+// import { selectChunksWithMMR } from "../rag/services/mmrService.js";
+
 import { retrieveRelevantChunksService } from "../rag/services/retrievalService.js";
-import { rerankChunksService } from "../rag/services/re-rankerService.js";
-import { hybridSearchService } from "../rag/services/hybridSearch.js";
+
 
 export const streamGeminiResponseService = async (aiResponse, res) => {
   let completeResponse = "";
@@ -24,17 +27,13 @@ export const streamGeminiResponseService = async (aiResponse, res) => {
 
     const remainingLength = MAX_AI_RESPONSE_LENGTH - completeResponse.length;
 
-    if (remainingLength <= 0) {
-      break;
-    }
+    if (remainingLength <= 0) break;
 
     const textToSend = chunkText.slice(0, remainingLength);
 
     completeResponse += textToSend;
 
-    if (textToSend) {
-      res.write(textToSend);
-    }
+    if (textToSend) res.write(textToSend);
 
     if (textToSend.length < chunkText.length) {
       break;
@@ -43,243 +42,59 @@ export const streamGeminiResponseService = async (aiResponse, res) => {
 
   const validatedResponse = validateAIInputService(completeResponse);
 
-  if (!completeResponse.trim()) {
-    res.write(validatedResponse);
-  }
+  if (!completeResponse.trim()) res.write(validatedResponse);
 
   return validatedResponse;
 };
-// export const getRelevantDocumentChunksService = async (question, topK = 5) => {
-//   if (!question?.trim()) return [];
 
-//   try {
-//     const candidateChunks = await retrieveRelevantChunksService({
-//       question,
-//       topK,
-//     });
-
-//     console.log(`Retrieved ${candidateChunks.length} candidate chunks.`);
-
-//     console.log(
-//       JSON.stringify(
-//         candidateChunks.map((chunk, index) => ({
-//           rank: index + 1,
-//           text: chunk.text,
-//           metadata: chunk.metadata,
-//           distance: chunk.distance,
-//         })),
-//         null,
-//         2,
-//       ),
-//     );
-//     if (candidateChunks.length === 0) {
-//       return [];
-//     }
-
-//     const rerankedChunks = await rerankChunksService({
-//       question,
-//       chunks: candidateChunks,
-//       topK,
-//     });
-//     const threshold = -8;
-
-//     const relevantChunks = rerankedChunks.filter((chunk) => {
-//       return chunk.rerankScore >= threshold;
-//     });
-//     const rejectedChunks = rerankedChunks.filter((chunk) => {
-//       return chunk.rerankScore < threshold;
-//     });
-//     console.log(`Re-ranking selected ${rerankedChunks.length} chunks.`);
-//     console.log("\n========== ACCEPTED CHUNKS ==========");
-//     console.log(`Accepted: ${relevantChunks.length}`);
-
-//     console.log(
-//       JSON.stringify(
-//         relevantChunks.map((chunk, index) => ({
-//           rank: index + 1,
-//           text: chunk.text,
-//           metadata: chunk.metadata,
-//           distance: chunk.distance,
-//           rerankScore: chunk.rerankScore,
-//           status: "ACCEPTED",
-//         })),
-//         null,
-//         2,
-//       ),
-//     );
-
-//     // Step 7: Display rejected chunks
-//     console.log("\n========== REJECTED CHUNKS ==========");
-//     console.log(`Rejected: ${rejectedChunks.length}`);
-
-//     console.log(
-//       JSON.stringify(
-//         rejectedChunks.map((chunk, index) => ({
-//           rank: index + 1,
-//           text: chunk.text,
-//           metadata: chunk.metadata,
-//           distance: chunk.distance,
-//           rerankScore: chunk.rerankScore,
-//           status: "REJECTED",
-//         })),
-//         null,
-//         2,
-//       ),
-//     );
-//     console.log(
-//       JSON.stringify(
-//         rerankedChunks.map((chunk, index) => ({
-//           rank: index + 1,
-//           text: chunk.text,
-//           metadata: chunk.metadata,
-//           distance: chunk.distance,
-//           rerankScore: chunk.rerankScore,
-//         })),
-//         null,
-//         2,
-//       ),
-//     );
-//     console.log(`Score threshold: ${threshold}`);
-//     console.log(`Chunks before thresholding: ${rerankedChunks.length}`);
-//     console.log(`Chunks after thresholding: ${relevantChunks.length}`);
-//     console.log(
-//       `Chunks rejected: ${rerankedChunks.length - relevantChunks.length}`,
-//     );
-//     return relevantChunks;
-//   } catch (error) {
-//     console.error("Document retrieval failed:", error);
-//     return [];
-//   }
+// export const retrievedChunksWithMMRService = async ({
+//   question,
+//   candidateCount = 10,
+//   topK = 10,
+// }) => {
+//   const { queryEmbedding, chunks } = await retrieveRelevantChunksService({
+//     question,
+//     topK: candidateCount,
+//   });
+//   const selectedChunks = selectChunksWithMMR({
+//     questionEmbedding: queryEmbedding,
+//     chunks,
+//     topK,
+//     lambda: 0.7,
+//   });
+//   return selectedChunks.map(({ embedding, ...chunk }) => chunk);
 // };
 
-export const getRelevantDocumentChunksService = async (question, topK = 5) => {
-  if (!question?.trim()) return [];
+// export const buildDocumentContextService = (chunks) => {
+//   if (!chunks.length) {
+//     return null;
+//   }
 
-  try {
-    const candidateChunks = await hybridSearchService({
-      question,
-      topK: topK * 2,
-    });
+//   const documentContext = chunks
+//     .map((chunk, index) => {
+//       return `Document Chunk ${index + 1}:\n${chunk.text}`;
+//     })
+//     .join("\n\n");
 
-    console.log(`Retrieved ${candidateChunks.length} candidate chunks.`);
+//   return `
+// Relevant information retrieved from the provided document:
 
-    console.log(
-      JSON.stringify(
-        candidateChunks.map((chunk, index) => ({
-          rank: index + 1,
-          id: chunk.id,
-          text: chunk.text,
-          metadata: chunk.metadata,
-          distance: chunk.distance,
-          vectorRank: chunk.vectorRank,
-          keywordRank: chunk.keywordRank,
-          rrfScore: chunk.rrfScore,
-        })),
-        null,
-        2,
-      ),
-    );
-    if (candidateChunks.length === 0) return [];
+// ${documentContext}
 
-    const rerankedChunks = await rerankChunksService({
-      question,
-      chunks: candidateChunks,
-      topK,
-    });
-    const threshold = -9;
-
-    const relevantChunks = rerankedChunks.filter((chunk) => {
-      return chunk.rerankScore >= threshold;
-    });
-    const rejectedChunks = rerankedChunks.filter((chunk) => {
-      return chunk.rerankScore < threshold;
-    });
-    console.log(`Re-ranking selected ${rerankedChunks.length} chunks.`);
-    console.log("\n========== ACCEPTED CHUNKS ==========");
-    console.log(`Accepted: ${relevantChunks.length}`);
-
-    console.log(
-      JSON.stringify(
-        relevantChunks.map((chunk, index) => ({
-          rank: index + 1,
-          id: chunk.id,
-          text: chunk.text,
-          metadata: chunk.metadata,
-          distance: chunk.distance,
-          vectorRank: chunk.vectorRank,
-          keywordRank: chunk.keywordRank,
-          rrfScore: chunk.rrfScore,
-          rerankScore: chunk.rerankScore,
-          status: "ACCEPTED",
-        })),
-        null,
-        2,
-      ),
-    );
-
-    // Step 7: Display rejected chunks
-    console.log("\n========== REJECTED CHUNKS ==========");
-    console.log(`Rejected: ${rejectedChunks.length}`);
-
-    console.log(
-      JSON.stringify(
-        rejectedChunks.map((chunk, index) => ({
-          rank: index + 1,
-          id: chunk.id,
-          text: chunk.text,
-          metadata: chunk.metadata,
-          distance: chunk.distance,
-          rrfScore: chunk.rrfScore,
-          rerankScore: chunk.rerankScore,
-          status: "REJECTED",
-        })),
-        null,
-        2,
-      ),
-    );
-
-    console.log(`Score threshold: ${threshold}`);
-    console.log(`Chunks before thresholding: ${rerankedChunks.length}`);
-    console.log(`Chunks after thresholding: ${relevantChunks.length}`);
-    console.log(`Chunks rejected: ${rejectedChunks.length}`);
-
-    return relevantChunks;
-  } catch (error) {
-    console.error("Document retrieval failed:", error);
-    return [];
-  }
-};
-
-export const buildDocumentContextService = (chunks) => {
-  if (!chunks.length) {
-    return null;
-  }
-
-  const documentContext = chunks
-    .map((chunk, index) => {
-      return `Document Chunk ${index + 1}:\n${chunk.text}`;
-    })
-    .join("\n\n");
-
-  return `
-Relevant information retrieved from the provided document:
-
-${documentContext}
-
-Instructions:
-- For questions about provided documents, base factual claims on the available document context.
-- Do not invent facts or claim information is present when it is not.
-- Do not use general knowledge to fill gaps in document-specific answers.
-- If the context does not support an answer, clearly explain what information is missing.
-- Combine information from multiple chunks when necessary.
-- When listing items, include all matching items supported by the provided context.
-- Avoid duplicate items.
-- Use conversation history to understand follow-up questions when relevant, but do not treat it as proof of what a document contains.
-- For unrelated general questions, answer normally using general knowledge.
-- Do not mention chunks, embeddings, vector databases, or retrieval unless explicitly asked.
-- Keep the answer focused on the user's question.
-`;
-};
+// Instructions:
+// - For questions about provided documents, base factual claims on the available document context.
+// - Do not invent facts or claim information is present when it is not.
+// - Do not use general knowledge to fill gaps in document-specific answers.
+// - If the context does not support an answer, clearly explain what information is missing.
+// - Combine information from multiple chunks when necessary.
+// - When listing items, include all matching items supported by the provided context.
+// - Avoid duplicate items.
+// - Use conversation history to understand follow-up questions when relevant, but do not treat it as proof of what a document contains.
+// - For unrelated general questions, answer normally using general knowledge.
+// - Do not mention chunks, embeddings, vector databases, or retrieval unless explicitly asked.
+// - Keep the answer focused on the user's question.
+// `;
+// };
 
 export const createMessageService = async (
   conversationId,
@@ -297,15 +112,11 @@ export const createMessageService = async (
     },
   });
 
-  if (!conversation) {
-    throw new Error("Conversation not found.");
-  }
+  if (!conversation) throw new Error("Conversation not found.");
 
   let uploadedFile = null;
 
-  if (file) {
-    uploadedFile = await uploadFileToGemini(file);
-  }
+  if (file) uploadedFile = await uploadFileToGemini(file);
 
   const userMessage = await Message.create({
     conversationId,
@@ -334,24 +145,28 @@ export const createMessageService = async (
     });
   }
 
-  const retrievedChunks = await getRelevantDocumentChunksService(
-    content ?? "",
-    5,
-  );
+  // const retrievedChunks = await getRelevantDocumentChunksService(
+  //   content ?? "",
+  //   5,
+  // );
 
-  const documentContext = buildDocumentContextService(retrievedChunks);
+  // const documentContext = buildDocumentContextService(retrievedChunks);
 
-  if (documentContext) {
-    conversationContext.push({
-      role: "user",
-      parts: [{ text: documentContext }],
-    });
-  }
+  // if (documentContext) {
+  //   conversationContext.push({
+  //     role: "user",
+  //     parts: [{ text: documentContext }],
+  //   });
+  // }
 
   conversationContext.push(...recentContext);
 
-  const aiResponse = await generateGeminiResponseStream(conversationContext);
-
+  // const aiResponse= await generateGeminiResponseStream(conversationContext, res);
+  const aiResponseText =
+    await generateGeminiResponseWithTools(conversationContext);
+  const aiResponse = (async function* () {
+    yield { text: aiResponseText };
+  })();
   const assistantContent = await streamGeminiResponseService(aiResponse, res);
 
   const assistantMessage = await Message.create({

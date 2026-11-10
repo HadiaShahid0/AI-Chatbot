@@ -40,6 +40,7 @@ export const evaluateRetrievalService = (retrievedChunks, relevantChunkIds) => {
   const relevantRetrievedCount = retrievedChunkIds.filter((chunkId) =>
     relevantIds.has(chunkId),
   ).length;
+  
   return {
     retrievedCount: retrievedChunkIds.length,
     relevantCount: relevantIds.size,

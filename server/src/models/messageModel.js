@@ -21,6 +21,11 @@ const Message = db.define(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    citations: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
     fileName: {
       type: DataTypes.STRING,
       allowNull: true,
