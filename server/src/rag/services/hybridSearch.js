@@ -23,9 +23,9 @@ export const hybridSearchService = async ({ question, topK = 5 }) => {
       const rank = index + 1;
 
       if (!fusedItems.has(itemId)) {
-        fusedItems.set(itemId, {                       
+        fusedItems.set(itemId, {
           ...item,
-          metadata: item.metadata ||{},
+          metadata: item.metadata || {},
           rrfScore: 0,
           vectorRank: null,
           keywordRank: null,
@@ -33,12 +33,12 @@ export const hybridSearchService = async ({ question, topK = 5 }) => {
       }
       const fusedItem = fusedItems.get(itemId);
 
-      fusedItem.metadata={
+      fusedItem.metadata = {
         ...fusedItem.metadata,
-        ...(item.metadata||{})
-      }
+        ...(item.metadata || {}),
+      };
 
-      if(!fusedItem.text && item.text) fusedItem.text=item.text;
+      if (!fusedItem.text && item.text) fusedItem.text = item.text;
       if (searchType === "vector") {
         fusedItem.vectorRank = rank;
       } else {

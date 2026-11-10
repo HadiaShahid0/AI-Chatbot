@@ -3,25 +3,20 @@ import { GoogleGenAI } from "@google/genai";
 import { generateGeminiResponseStream } from "./geminiServices.js";
 import { validateAIInputService } from "./guardrailsServices.js";
 
-import {
-  buildDocumentContextService,
-} from "./messageServices.js";
+import { buildDocumentContextService } from "./messageServices.js";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const MODEL =
-  process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
-// Generate an answer using the existing production Gemini service.
 export const generateAnswerForEvaluationService = async ({
   question,
   retrievedChunks,
 }) => {
   const conversationContext = [];
 
-  // Reuse the actual document context builder.
   const documentContext = buildDocumentContextService(retrievedChunks);
 
   if (documentContext) {
@@ -35,7 +30,6 @@ export const generateAnswerForEvaluationService = async ({
     });
   }
 
-  // Add the evaluation question.
   conversationContext.push({
     role: "user",
     parts: [
@@ -45,12 +39,8 @@ export const generateAnswerForEvaluationService = async ({
     ],
   });
 
-  // Generate the answer using the existing Gemini service.
-  const aiResponse = await generateGeminiResponseStream(
-    conversationContext,
-  );
+  const aiResponse = await generateGeminiResponseStream(conversationContext);
 
-  // Collect streamed text into a complete answer.
   let completeResponse = "";
 
   for await (const chunk of aiResponse) {
@@ -68,12 +58,9 @@ export const generateAnswerForEvaluationService = async ({
       break;
     }
   }
-
-  // Apply the existing answer validation.
   return validateAIInputService(completeResponse);
 };
 
-// Parse the JSON returned by the evaluation model.
 const parseJudgeResponse = (text) => {
   const cleanedText = text
     .trim()
@@ -83,7 +70,6 @@ const parseJudgeResponse = (text) => {
   return JSON.parse(cleanedText);
 };
 
-// Evaluate the generated answer using Gemini as an LLM judge.
 export const evaluateGenerationService = async ({
   question,
   expectedAnswer,
@@ -174,13 +160,8 @@ Return this exact structure:
 
   const result = parseJudgeResponse(response.text || "");
 
-  const scoreFields = [
-    "faithfulness",
-    "answerRelevancy",
-    "answerCorrectness",
-  ];
+  const scoreFields = ["faithfulness", "answerRelevancy", "answerCorrectness"];
 
-  // Validate the returned scores.
   for (const field of scoreFields) {
     if (
       typeof result[field] !== "number" ||
@@ -192,7 +173,6 @@ Return this exact structure:
     }
   }
 
-  // Validate abstention correctness separately.
   if (shouldAbstain) {
     if (
       typeof result.abstentionCorrectness !== "number" ||

@@ -1,15 +1,11 @@
 import bm25 from "wink-bm25-text-search";
-// import natural from "natural"
-// const stemmer=natural.PorterStemmer;
 let keywordSearchEngine = null;
 let chunksById = new Map();
 
 const prepareText = (text) => {
   return text.toLowerCase().match(/[\p{L}\p{N}_.-]+/gu || []);
 };
-// const prepareText = (text) => {
-//   return text.toLowerCase().split(/\W+/).filter(Boolean).map((word)=>stemmer.stem(word))
-// };
+
 export const buildKeywordIndexService = (chunks) => {
   const engine = bm25();
 
